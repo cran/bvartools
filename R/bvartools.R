@@ -1,0 +1,60 @@
+#' bvartools: Bayesian Inference of Vector Autoregressive Models
+#' 
+#' A collection of R and C++ functions, which assist in the set-up of algorithms
+#' for Bayesian inference of vector autoregressive (VAR) models.
+#' 
+#' The package \code{bvartools} implements some common functions used for Bayesian
+#' inference for mulitvariate time series models. It should give researchers
+#' maximum freedom in setting up MCMC algorithms in R and keep calculation time
+#' limited at the same time. This is achieved by implementing posterior simulation
+#' functions in C++. Its main features are
+#' \itemize{
+#' \item The \code{bvar} and \code{bvec} functions collect the output of a Gibbs sampler
+#' in standardised objects, which can be used for further analyses.
+#' \item Further functions such as \code{predict}, \code{irf}, \code{fevd} for forecasting,
+#' impulse response analysis and forecast error variance decomposition, respectively.
+#' \item Computationally intensive functions - such as for posterior
+#' simulation - are written in C++ using the \code{RcppArmadillo} package of Eddelbuettel
+#' and Sanderson (2014).
+#' }
+#' 
+#' @author Franz X. Mohr
+#' @docType package
+#' @name bvartools
+#' 
+#'
+#' @references
+#' 
+#' Sanderson, C., & Curtin, R. (2016). Armadillo: a template-based C++ library for linear algebra.
+#' \emph{Journal of Open Source Software, 1}(2), 26. \url{http://dx.doi.org/10.21105/joss.00026}
+#' 
+#' Durbin, J., & Koopman, S. J. (2002). A simple and efficient simulation smoother for
+#' state space time series analysis. \emph{Biometrika, 89}(3), 603--615.
+#' 
+#' Eddelbuettel, D., & Sanderson C. (2014). RcppArmadillo: Accelerating R with high-performance
+#' C++ linear algebra. \emph{Computational Statistics and Data Analysis, 71}, 1054--1063.
+#' \url{http://dx.doi.org/10.1016/j.csda.2013.02.005}
+#' 
+#' George, E. I., Sun, D., & Ni, S. (2008). Bayesian stochastic search for VAR model
+#' restrictions. \emph{Journal of Econometrics, 142}(1), 553--580.
+#' \url{https://doi.org/10.1016/j.jeconom.2007.08.017}
+#' 
+#' Koop, G, & Korobilis, D. (2010), Bayesian multivariate time series Methods for empirical
+#' macroeconomics, \emph{Foundations and Trends in Econometrics, 3}(4), 267--358.
+#' \url{http://dx.doi.org/10.1561/0800000013}
+#' 
+#' Koop, G., León-González, R., & Strachan R. W. (2010). Efficient posterior
+#' simulation for cointegrated models with priors on the cointegration space.
+#' \emph{Econometric Reviews, 29}(2), 224--242.
+#' \url{https://doi.org/10.1080/07474930903382208}
+#' 
+#' Korobilis, D. (2013). VAR forecasting using Bayesian variable selection.
+#' \emph{Journal of Applied Econometrics, 28}(2), 204--230.
+#' \url{https://doi.org/10.1002/jae.1271}
+#' 
+#' Lütkepohl, H. (2007). \emph{New introduction to multiple time series analysis} (2nd ed.). Berlin: Springer.
+#' 
+#' @useDynLib bvartools, .registration = TRUE
+#' @importFrom Rcpp sourceCpp
+#' @exportPattern "^[[:alpha:]]+"
+NULL
