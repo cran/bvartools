@@ -22,7 +22,9 @@ For time varying variance-covariance matrics a \eqn{KT \times K} can be provided
 \item{p_tau_i}{an inverted \eqn{M \times M} matrix specifying the central location
 of the cointegration space prior of \eqn{sp(\beta)}.}
 
-\item{g_i}{a \eqn{K \times K} or \eqn{KT \times K} matrix.}
+\item{g_i}{a \eqn{K \times K} or \eqn{KT \times K} matrix. If the matrix is \eqn{KT \times K},
+the function will automatically produce a \eqn{K \times K} matrix containing the means of the
+time varying \eqn{K \times K} covariance matrix.}
 
 \item{x}{a \eqn{KT \times NK} matrix of differenced regressors and unrestricted deterministic terms.}
 
@@ -84,12 +86,13 @@ The final draws of \eqn{\alpha} and \eqn{\beta} are calculated using
 }
 \examples{
 data("e6")
-temp <- gen_vec(e6, p = 0)
+temp <- gen_vec(e6, p = 1)
 y <- temp$Y
 ect <- temp$W
 
 k <- nrow(y)
 t <- ncol(y)
+m <- nrow(ect)
 
 # Initial value of Sigma
 sigma <- tcrossprod(y) / t
@@ -100,7 +103,7 @@ beta <- matrix(c(1, -4), k)
 
 # Draw parameters
 coint <- post_coint_kls_sur(y = y, beta = beta, w = ect,
-                            sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, 1),
+                            sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, m),
                             g_i = sigma_i)
 
 }

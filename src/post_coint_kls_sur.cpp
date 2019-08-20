@@ -16,7 +16,9 @@
 //' @param v_i a numeric between 0 and 1 specifying the shrinkage of the cointegration space prior.
 //' @param p_tau_i an inverted \eqn{M \times M} matrix specifying the central location
 //' of the cointegration space prior of \eqn{sp(\beta)}.
-//' @param g_i a \eqn{K \times K} or \eqn{KT \times K} matrix.
+//' @param g_i a \eqn{K \times K} or \eqn{KT \times K} matrix. If the matrix is \eqn{KT \times K},
+//' the function will automatically produce a \eqn{K \times K} matrix containing the means of the
+//' time varying \eqn{K \times K} covariance matrix.
 //' @param gamma_mu_prior a \eqn{KN \times 1} prior mean vector of non-cointegration coefficients.
 //' @param gamma_V_i_prior an inverted \eqn{KN \times KN} prior covariance matrix of non-cointegration coefficients.
 //' 
@@ -67,12 +69,13 @@
 //' 
 //' @examples
 //' data("e6")
-//' temp <- gen_vec(e6, p = 0)
+//' temp <- gen_vec(e6, p = 1)
 //' y <- temp$Y
 //' ect <- temp$W
 //' 
 //' k <- nrow(y)
 //' t <- ncol(y)
+//' m <- nrow(ect)
 //' 
 //' # Initial value of Sigma
 //' sigma <- tcrossprod(y) / t
@@ -83,7 +86,7 @@
 //' 
 //' # Draw parameters
 //' coint <- post_coint_kls_sur(y = y, beta = beta, w = ect,
-//'                             sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, 1),
+//'                             sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, m),
 //'                             g_i = sigma_i)
 //' 
 //' @references
@@ -101,11 +104,15 @@ Rcpp::List post_coint_kls_sur(arma::mat y, arma::mat beta, arma::mat w, arma::ma
                               Rcpp::Nullable<Rcpp::NumericVector> gamma_mu_prior = R_NilValue,
                               Rcpp::Nullable<Rcpp::NumericMatrix> gamma_V_i_prior = R_NilValue){
 
-  int k = y.n_rows;
+  arma::uword k = y.n_rows;
   int t = y.n_cols;
   int r = beta.n_cols;
   int k_a = k * r;
   int k_b = w.n_rows * r;
+  
+  if (p_tau_i.n_cols != w.n_rows) {
+    Rcpp::stop("'p_tau_i' must have the same number of rows and columns as the number of variables in the error correction term.");
+  }
   
   bool const_var = true;
   arma::mat S_i = arma::zeros<arma::mat>(k * t, k * t);
@@ -113,7 +120,15 @@ Rcpp::List post_coint_kls_sur(arma::mat y, arma::mat beta, arma::mat w, arma::ma
     const_var = false;
   }
   
-  int k_x = 0;
+  arma::mat G_i = g_i;
+  if (g_i.n_rows > k) {
+    G_i = arma::zeros<arma::mat>(k, k);
+    for (int i = 0; i < t; i++){
+      G_i = G_i + g_i.rows(i * k, (i + 1) * k - 1);
+    }
+    G_i = G_i / t;
+  }
+  
   int k_g = 0;
   bool incl_x = false;
   arma::mat X, Gamma_V_i_prior;
@@ -124,7 +139,6 @@ Rcpp::List post_coint_kls_sur(arma::mat y, arma::mat beta, arma::mat w, arma::ma
     Gamma_mu_prior = Rcpp::as<arma::vec>(gamma_mu_prior);
     Gamma_V_i_prior = Rcpp::as<arma::mat>(gamma_V_i_prior);
     k_g = X.n_cols;
-    k_x = k_g / k;
   }
   int k_ag = k_a + k_g;
   
@@ -136,7 +150,7 @@ Rcpp::List post_coint_kls_sur(arma::mat y, arma::mat beta, arma::mat w, arma::ma
   
   arma::vec mu_ag_prior = arma::zeros<arma::vec>(k_ag);
   arma::mat V_ag_prior = arma::zeros<arma::mat>(k_ag, k_ag);
-  V_ag_prior.submat(0, 0, k_a - 1, k_a - 1) = arma::kron(v_i * (arma::trans(beta) * p_tau_i * beta), g_i);
+  V_ag_prior.submat(0, 0, k_a - 1, k_a - 1) = arma::kron(v_i * (arma::trans(beta) * p_tau_i * beta), G_i);
   if (incl_x) {
     mu_ag_prior.subvec(k_a, k_ag - 1) = Gamma_mu_prior;
     V_ag_prior.submat(k_a, k_a, k_ag - 1, k_ag - 1) = Gamma_V_i_prior;
@@ -159,8 +173,8 @@ Rcpp::List post_coint_kls_sur(arma::mat y, arma::mat beta, arma::mat w, arma::ma
   arma::mat V_post = arma::inv(V_ag_prior + ZHZ);
   arma::vec mu_post = V_post * (V_ag_prior * mu_ag_prior + ZHy);
   
-  arma::vec s;
-  arma::mat U;
+  arma::vec s = arma::zeros<arma::vec>(k_ag);
+  arma::mat U = arma::zeros<arma::mat>(k_ag, k_ag);
   arma::eig_sym(s, U, V_post);
   
   arma::mat ag = mu_post + U * arma::diagmat(sqrt(s)) * arma::trans(U) * arma::randn<arma::vec>(k_ag);
@@ -188,11 +202,12 @@ Rcpp::List post_coint_kls_sur(arma::mat y, arma::mat beta, arma::mat w, arma::ma
   ZHZ = ZHi * z;
   ZHy = ZHi * arma::vectorise(y);
   
-  V_post = arma::inv(arma::kron(arma::trans(A) * g_i * A, v_i * p_tau_i) + ZHZ);
+  V_post = arma::inv(arma::kron(arma::trans(A) * G_i * A, v_i * p_tau_i) + ZHZ);
   mu_post = V_post * ZHy;
   
-  arma::eig_sym(s, U, V_post);
-  arma::mat B = mu_post + U * arma::diagmat(sqrt(s)) * arma::trans(U) * arma::randn<arma::vec>(k_b);
+  arma::mat V;
+  arma::svd(U, s, V, V_post);
+  arma::mat B = mu_post + U * arma::diagmat(arma::sqrt(s)) * arma::trans(V) * arma::randn<arma::vec>(k_b);
   B = arma::reshape(B, w.n_rows, r);
   
   arma::mat BB_sqrt = arma::sqrtmat_sympd(arma::trans(B) * B);

@@ -226,7 +226,7 @@ kalman_dk <- function(y, z, sigma_u, sigma_v, B, a_init, P_init) {
 #' @examples
 #' # Prepare data
 #' data("e6")
-#' temp <- gen_vec(e6, p = 0)
+#' temp <- gen_vec(e6, p = 1)
 #' y <- temp$Y
 #' ect <- temp$W
 #' 
@@ -270,7 +270,9 @@ post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gam
 #' @param v_i a numeric between 0 and 1 specifying the shrinkage of the cointegration space prior.
 #' @param p_tau_i an inverted \eqn{M \times M} matrix specifying the central location
 #' of the cointegration space prior of \eqn{sp(\beta)}.
-#' @param g_i a \eqn{K \times K} or \eqn{KT \times K} matrix.
+#' @param g_i a \eqn{K \times K} or \eqn{KT \times K} matrix. If the matrix is \eqn{KT \times K},
+#' the function will automatically produce a \eqn{K \times K} matrix containing the means of the
+#' time varying \eqn{K \times K} covariance matrix.
 #' @param gamma_mu_prior a \eqn{KN \times 1} prior mean vector of non-cointegration coefficients.
 #' @param gamma_V_i_prior an inverted \eqn{KN \times KN} prior covariance matrix of non-cointegration coefficients.
 #' 
@@ -321,12 +323,13 @@ post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gam
 #' 
 #' @examples
 #' data("e6")
-#' temp <- gen_vec(e6, p = 0)
+#' temp <- gen_vec(e6, p = 1)
 #' y <- temp$Y
 #' ect <- temp$W
 #' 
 #' k <- nrow(y)
 #' t <- ncol(y)
+#' m <- nrow(ect)
 #' 
 #' # Initial value of Sigma
 #' sigma <- tcrossprod(y) / t
@@ -337,7 +340,7 @@ post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gam
 #' 
 #' # Draw parameters
 #' coint <- post_coint_kls_sur(y = y, beta = beta, w = ect,
-#'                             sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, 1),
+#'                             sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, m),
 #'                             g_i = sigma_i)
 #' 
 #' @references
