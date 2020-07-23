@@ -66,7 +66,7 @@
 #'   temp <- post_coint_kls(y = y, beta = beta, w = w, x = x, sigma_i = u_sigma_i,
 #'                          v_i = v_i, p_tau_i = p_tau_i, g_i = g_i,
 #'                          gamma_mu_prior = a_mu_prior,
-#'                          gamma_V_i_prior = a_v_i_prior)
+#'                          gamma_v_i_prior = a_v_i_prior)
 #'   alpha <- temp$alpha
 #'   beta <- temp$beta
 #'   Pi <- temp$Pi
@@ -114,6 +114,7 @@ bvec_to_bvar <- function(object) {
   if (!any(class(object) %in% "bvec")) {
     stop("Argument 'object' must be of class 'bvec'.")
   }
+  
   draws <- nrow(object$Pi)
   k <- NROW(object$y)
   
@@ -139,9 +140,9 @@ bvec_to_bvar <- function(object) {
     }
   }
   
-  if (!is.null(object$Ypsilon)) {
-    m <- NCOL(object$Pi_x)
-    s <- NCOL(object$Ypsilon) / (k * m)
+  if (!is.null(object$Upsilon)) {
+    m <- NCOL(object$Pi_x) / k
+    s <- NCOL(object$Upsilon) / (k * m)
     W <- diag(-1, m * (s + 1))
     W[1:m, 1:m] <- 0
     W[1:m, m + 1:m] <- diag(1, m)
@@ -149,7 +150,7 @@ bvec_to_bvar <- function(object) {
     
     B <- matrix(NA, k * m * (s + 1), draws)
     for (draw in 1:draws){
-      B[, draw] <- cbind(matrix(object$Pi_x[draw, ], k), matrix(object$Ypsilon[draw, ], k)) %*% W
+      B[, draw] <- cbind(matrix(object$Pi_x[draw, ], k), matrix(object$Upsilon[draw, ], k)) %*% W
     }
   } else {
     B <- NULL
@@ -263,14 +264,17 @@ bvec_to_bvar <- function(object) {
     }
   }
   
-  if (!is.null(object$x)) {
-    x_det_names <- c(x_det_names, dimnames(object$x)[[1]][-(1:(k * (p - 1) + m * s))])
+  if (!is.null(object$x) & n_c > 0) {
+    x_det_names <- c(x_det_names, dimnames(object$x)[[1]][-(1:(k * (p - 1) + m * s))]) 
     x_temp <- matrix(object$x[-(1:(k * (p - 1) + m * s)),], n_c)
     if (is.null(x_det)) {
       x_det <- x_temp
     } else {
       x_det <- rbind(x_det, x_temp) 
     }
+  }
+  
+  if (!is.null(x_det)) {
     dimnames(x_det) <- list(x_det_names, NULL)
     x <- rbind(x, x_det)
   }

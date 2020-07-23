@@ -4,10 +4,23 @@
 \alias{bvec}
 \title{Bayesian Vector Error Correction Objects}
 \usage{
-bvec(data = NULL, exogen = NULL, y = NULL, w = NULL, x = NULL,
-  alpha = NULL, beta = NULL, Pi = NULL, Pi_x = NULL, Pi_d = NULL,
-  A0 = NULL, Gamma = NULL, Upsilon = NULL, C = NULL,
-  Sigma = NULL)
+bvec(
+  data = NULL,
+  exogen = NULL,
+  y = NULL,
+  w = NULL,
+  x = NULL,
+  alpha = NULL,
+  beta = NULL,
+  Pi = NULL,
+  Pi_x = NULL,
+  Pi_d = NULL,
+  A0 = NULL,
+  Gamma = NULL,
+  Upsilon = NULL,
+  C = NULL,
+  Sigma = NULL
+)
 }
 \arguments{
 \item{data}{the original time-series object of endogenous variables.}
@@ -152,7 +165,7 @@ for (draw in 1:iter) {
   temp <- post_coint_kls(y = y, beta = beta, w = w, x = x, sigma_i = u_sigma_i,
                          v_i = v_i, p_tau_i = p_tau_i, g_i = g_i,
                          gamma_mu_prior = a_mu_prior,
-                         gamma_V_i_prior = a_v_i_prior)
+                         gamma_v_i_prior = a_v_i_prior)
   alpha <- temp$alpha
   beta <- temp$beta
   Pi <- temp$Pi

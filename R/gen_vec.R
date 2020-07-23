@@ -60,6 +60,21 @@
 #' 
 #' @export
 gen_vec <- function(data, p = 2, exogen = NULL, s = 2, const = NULL, trend = NULL, seasonal = NULL) {
+  if (!is.null(const)) {
+    if (!const %in% c("restricted", "unrestricted")) {
+      stop("Specified value for argument 'const' is not valid.")
+    }
+  }
+  if (!is.null(trend)) {
+    if (!trend %in% c("restricted", "unrestricted")) {
+      stop("Specified value for argument 'trend' is not valid.")
+    }
+  }
+  if (!is.null(seasonal)) {
+    if (!seasonal %in% c("restricted", "unrestricted")) {
+      stop("Specified value for argument 'seasonal' is not valid.")
+    }
+  }
   if (!"ts" %in% class(data)) {
     stop("Argument 'data' must be an object of class 'ts'.")
   }
@@ -177,7 +192,7 @@ gen_vec <- function(data, p = 2, exogen = NULL, s = 2, const = NULL, trend = NUL
     if (freq == 1) {
       warning("The frequency of the provided data is 1. No seasonal dummmies are generated.")
     } else {
-      pos <- which(floor(stats::time(temp)) == stats::time(temp))[1]
+      pos <- which(stats::cycle(temp) == 1)[1]
       pos <- rep(1:freq, 2)[pos:(pos + (freq - 2))]
       seas <- NULL
       s_name <- NULL

@@ -125,7 +125,7 @@
 #'   temp <- post_coint_kls(y = y, beta = beta, w = w, x = x, sigma_i = u_sigma_i,
 #'                          v_i = v_i, p_tau_i = p_tau_i, g_i = g_i,
 #'                          gamma_mu_prior = a_mu_prior,
-#'                          gamma_V_i_prior = a_v_i_prior)
+#'                          gamma_v_i_prior = a_v_i_prior)
 #'   alpha <- temp$alpha
 #'   beta <- temp$beta
 #'   Pi <- temp$Pi
@@ -160,8 +160,6 @@
 #'                  Gamma = draws_gamma[1:k_nondet,],
 #'                  C = draws_gamma[(k_nondet + 1):nrow(draws_gamma),],
 #'                  Sigma = draws_sigma)
-
-
 #' 
 #' @export
 bvec <- function(data = NULL, exogen = NULL, y = NULL, w = NULL, x = NULL,

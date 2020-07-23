@@ -80,9 +80,9 @@ bvs <- function(y, z, a, lambda, sigma_i, prob_prior, include = NULL) {
 #' 
 #' @param y a \eqn{K \times T} matrix of endogenous variables.
 #' @param z a \eqn{KT \times M} matrix of explanatory variables.
-#' @param sigma_u the inverse of the constant \eqn{K \times K} error variance-covariance matrix.
+#' @param sigma_u the constant \eqn{K \times K} error variance-covariance matrix.
 #' For time varying variance-covariance matrices a \eqn{KT \times K} can be specified.
-#' @param sigma_v the inverse of the constant \eqn{M \times M} coefficient variance-covariance matrix.
+#' @param sigma_v the constant \eqn{M \times M} coefficient variance-covariance matrix.
 #' For time varying variance-covariance matrices a \eqn{MT \times M} can be specified.
 #' @param B an \eqn{M \times M} autocorrelation matrix of the transition equation.
 #' @param a_init an M-dimensional vector of initial states.
@@ -160,6 +160,40 @@ kalman_dk <- function(y, z, sigma_u, sigma_v, B, a_init, P_init) {
     .Call(`_bvartools_kalman_dk`, y, z, sigma_u, sigma_v, B, a_init, P_init)
 }
 
+#' Calculates the log-likelihood of a multivariate normal distribution.
+#' 
+#' @param u a \eqn{K \times T} matrix of residuals.
+#' @param sigma a \eqn{K \times K} or \eqn{KT \times K} variance-covariance matrix.
+#' 
+#' @details The log-likelihood is calculated for each vector in period \eqn{t} as
+#' \deqn{-\frac{K}{2} \ln 2\pi - \frac{1}{2} \ln |\Sigma_t| -\frac{1}{2} u_t^\prime \Sigma_t^{-1} u_t},
+#' where \eqn{u_t = y_t - \mu_t}.
+#' 
+#' @examples
+#' data("e1")
+#' e1 <- diff(log(e1))
+#' 
+#' # Generate VAR model
+#' data <- gen_var(e1, p = 2, deterministic = "const")
+#' y <- data$Y
+#' x <- data$Z
+#'
+#' # LS estimate
+#' ols <- tcrossprod(y, x) %*% solve(tcrossprod(x))
+#' 
+#' # Residuals
+#' u <- y - ols %*% x # Residuals
+#'
+#' # Covariance matrix
+#' sigma <- tcrossprod(u) / ncol(u)
+#' 
+#' # Log-likelihood
+#' loglik_normal(u = u, sigma = sigma)
+#' 
+loglik_normal <- function(u, sigma) {
+    .Call(`_bvartools_loglik_normal`, u, sigma)
+}
+
 #' Posterior Draw for Cointegration Models
 #' 
 #' Produces a draw of coefficients for cointegration models with a prior on
@@ -176,7 +210,7 @@ kalman_dk <- function(y, z, sigma_u, sigma_v, B, a_init, P_init) {
 #' of the cointegration space prior of \eqn{sp(\beta)}.
 #' @param g_i a \eqn{K \times K} matrix.
 #' @param gamma_mu_prior a \eqn{KN \times 1} prior mean vector of non-cointegration coefficients.
-#' @param gamma_V_i_prior an inverted \eqn{KN \times KN} prior covariance matrix of non-cointegration coefficients.
+#' @param gamma_v_i_prior an inverted \eqn{KN \times KN} prior covariance matrix of non-cointegration coefficients.
 #' 
 #' @details The function produces posterior draws of the coefficient
 #' matrices \eqn{\alpha}, \eqn{\beta} and \eqn{\Gamma} for the model
@@ -241,9 +275,8 @@ kalman_dk <- function(y, z, sigma_u, sigma_v, B, a_init, P_init) {
 #' beta <- matrix(c(1, -4), k)
 #' 
 #' # Draw parameters
-#' coint <- post_coint_kls(y = y, beta = beta, w = ect,
-#'                         sigma_i = sigma_i, v_i = 0, p_tau_i = diag(1, k),
-#'                         g_i = sigma_i)
+#' coint <- post_coint_kls(y = y, beta = beta, w = ect, sigma_i = sigma_i,
+#'                         v_i = 0, p_tau_i = diag(1, k), g_i = sigma_i)
 #' 
 #' @references
 #' 
@@ -251,8 +284,8 @@ kalman_dk <- function(y, z, sigma_u, sigma_v, B, a_init, P_init) {
 #' simulation for cointegrated models with priors on the cointegration space.
 #' \emph{Econometric Reviews, 29}(2), 224-242. \url{https://doi.org/10.1080/07474930903382208}
 #' 
-post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gamma_mu_prior = NULL, gamma_V_i_prior = NULL) {
-    .Call(`_bvartools_post_coint_kls`, y, beta, w, sigma_i, v_i, p_tau_i, g_i, x, gamma_mu_prior, gamma_V_i_prior)
+post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gamma_mu_prior = NULL, gamma_v_i_prior = NULL) {
+    .Call(`_bvartools_post_coint_kls`, y, beta, w, sigma_i, v_i, p_tau_i, g_i, x, gamma_mu_prior, gamma_v_i_prior)
 }
 
 #' Posterior Draw for Cointegration Models
@@ -262,7 +295,7 @@ post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gam
 #' non-cointegration coefficients from a normal density.
 #' 
 #' @param y a \eqn{K \times T} matrix of differenced endogenous variables.
-#' @param beta a \eqn{M \times r} cointegration matrix \eqn{\beta}.
+#' @param beta a \eqn{M \times r} cointegration matrix \eqn{\beta}, where \eqn{\beta^{\prime} \beta = I}.
 #' @param w a \eqn{M \times T} matrix of variables in the cointegration term.
 #' @param x  a \eqn{KT \times NK} matrix of differenced regressors and unrestricted deterministic terms.
 #' @param sigma_i the inverse of the constant \eqn{K \times K} error variance-covariance matrix.
@@ -274,7 +307,11 @@ post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gam
 #' the function will automatically produce a \eqn{K \times K} matrix containing the means of the
 #' time varying \eqn{K \times K} covariance matrix.
 #' @param gamma_mu_prior a \eqn{KN \times 1} prior mean vector of non-cointegration coefficients.
-#' @param gamma_V_i_prior an inverted \eqn{KN \times KN} prior covariance matrix of non-cointegration coefficients.
+#' @param gamma_v_i_prior an inverted \eqn{KN \times KN} prior covariance matrix of
+#' non-cointegration coefficients.
+#' @param svd logical. If \code{TRUE} the singular value decomposition is used to determine
+#' the root of the posterior covariance matrix. Default is \code{FALSE} which means
+#' that the eigenvalue decomposition is used.
 #' 
 #' @details The function produces posterior draws of the coefficient
 #' matrices \eqn{\alpha}, \eqn{\beta} and \eqn{\Gamma} for the model
@@ -349,8 +386,8 @@ post_coint_kls <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gam
 #' simulation for cointegrated models with priors on the cointegration space.
 #' \emph{Econometric Reviews, 29}(2), 224-242. \url{https://doi.org/10.1080/07474930903382208}
 #' 
-post_coint_kls_sur <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gamma_mu_prior = NULL, gamma_V_i_prior = NULL) {
-    .Call(`_bvartools_post_coint_kls_sur`, y, beta, w, sigma_i, v_i, p_tau_i, g_i, x, gamma_mu_prior, gamma_V_i_prior)
+post_coint_kls_sur <- function(y, beta, w, sigma_i, v_i, p_tau_i, g_i, x = NULL, gamma_mu_prior = NULL, gamma_v_i_prior = NULL, svd = FALSE) {
+    .Call(`_bvartools_post_coint_kls_sur`, y, beta, w, sigma_i, v_i, p_tau_i, g_i, x, gamma_mu_prior, gamma_v_i_prior, svd)
 }
 
 #' Posterior Draw from a Normal Distribution
@@ -421,6 +458,9 @@ post_normal <- function(y, x, sigma_i, a_prior, v_i_prior) {
 #' For time varying variance-covariance matrics a \eqn{KT \times K} can be provided.
 #' @param a_prior a \eqn{M x 1} numeric vector of prior means.
 #' @param v_i_prior the inverse of the \eqn{M x M} prior covariance matrix.
+#' @param svd logical. If \code{TRUE} the singular value decomposition is used to determine
+#' the root of the posterior covariance matrix. Default is \code{FALSE} which means
+#' that the eigenvalue decomposition is used.
 #' 
 #' @details The function produces a posterior draw of the coefficient vector \eqn{a} for the model
 #' \deqn{y_{t} = Z_{t} a + u_{t},}
@@ -460,8 +500,8 @@ post_normal <- function(y, x, sigma_i, a_prior, v_i_prior) {
 #' 
 #' @return A vector.
 #' 
-post_normal_sur <- function(y, z, sigma_i, a_prior, v_i_prior) {
-    .Call(`_bvartools_post_normal_sur`, y, z, sigma_i, a_prior, v_i_prior)
+post_normal_sur <- function(y, z, sigma_i, a_prior, v_i_prior, svd = FALSE) {
+    .Call(`_bvartools_post_normal_sur`, y, z, sigma_i, a_prior, v_i_prior, svd)
 }
 
 #' Stochastic Search Variable Selection
@@ -470,11 +510,14 @@ post_normal_sur <- function(y, z, sigma_i, a_prior, v_i_prior) {
 #' to produce a draw of the precision matrix of the coefficients in a VAR model.
 #' 
 #' @param a an M-dimensional vector of coefficient draws.
-#' @param tau0 an M-dimensional vector of prior standard deviations for restricted variables.
-#' @param tau1 an M-dimensional vector of prior standard deviations for unrestricted variables.
-#' @param prob_prior an M-dimensional vector of prior inclusion probabilites.
-#' @param include an integer vector specifying the positions of variables, which should be
-#' included in the SSVS algorithm. If \code{NULL} (default), SSVS will be applied to all variables.
+#' @param tau0 an M-dimensional vector of prior standard deviations for restricted
+#' coefficients in vector \code{a}.
+#' @param tau1 an M-dimensional vector of prior standard deviations for unrestricted
+#' coefficients in vector \code{a}.
+#' @param prob_prior an M-dimensional vector of prior inclusion probabilites for the coefficients
+#' in vector \code{a}.
+#' @param include an integer vector specifying the positions of coefficients in vector \code{a}, which should be
+#' included in the SSVS algorithm. If \code{NULL} (default), SSVS will be applied to all coefficients.
 #' 
 #' @details The function employs stochastic search variable selection (SSVS) as proposed
 #' by George et al. (2008) to produce a draw of the diagonal inverse prior covariance matrix
@@ -486,7 +529,7 @@ post_normal_sur <- function(y, z, sigma_i, a_prior, v_i_prior) {
 #' and the error term is \eqn{u_t \sim \Sigma}.
 #' 
 #' @return A named list containing two components:
-#' \item{V_i}{an \eqn{M \times M} inverse prior covariance matrix.}
+#' \item{v_i}{an \eqn{M \times M} inverse prior covariance matrix.}
 #' \item{lambda}{an M-dimensional vector of inclusion parameters.}
 #' 
 #' @examples
@@ -497,17 +540,17 @@ post_normal_sur <- function(y, z, sigma_i, a_prior, v_i_prior) {
 #' y <- temp$Y
 #' x <- temp$Z
 #' k <- nrow(y)
-#' t <- ncol(y)
+#' tt <- ncol(y)
 #' m <- k * nrow(x)
 #' 
 #' # OLS estimates for semiautomatic approach
 #' ols <- tcrossprod(y, x) %*% solve(tcrossprod(x))
 #' # OLS error covariance matrix
-#' sigma_ols <- tcrossprod(y - ols %*% x) / (t - nrow(x))
+#' sigma_ols <- tcrossprod(y - ols %*% x) / (tt - nrow(x))
 #' # Covariance matrix
 #' cov_ols <- kronecker(solve(tcrossprod(x)), sigma_ols)
 #' # Standard errors
-#' se_ols <- matrix(sqrt(diag(cov_ols))) # OLS standard errors
+#' se_ols <- matrix(sqrt(diag(cov_ols)))
 #' 
 #' # SSVS priors
 #' tau0 <- se_ols * 0.1 # If excluded

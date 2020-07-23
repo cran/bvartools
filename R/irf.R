@@ -14,6 +14,9 @@
 #' (default), orthogonalised \code{"oir"}, structural \code{"sir"}, generalised \code{"gir"},
 #' and structural generalised \code{"sgir"} impulse responses.
 #' @param cumulative logical specifying whether a cumulative IRF should be calculated.
+#' @param keep_draws logical specifying whether the function should return all draws of
+#' the posterior impulse response function. Defaults to \code{FALSE} so that
+#' the median and the credible intervals of the posterior draws are returned.
 #' 
 #' @details The function produces different types of impulse responses for the VAR model
 #' \deqn{y_t = \sum_{i = 1}^{p} A_{i} y_{t-i} + A_0^{-1} u_t,}
@@ -35,7 +38,7 @@
 #' one in its \eqn{j^{th}} element and zero otherwise. If the \code{"bvar"} object does not contain draws
 #' of \eqn{A_0}, it is assumed to be an identity matrix.
 #' 
-#' @return A time-series object of class \code{"bvarirf"}.
+#' @return A time-series object of class \code{"bvarirf"} and if \code{keep_draws = TRUE} a simple matrix.
 #' 
 #' @examples
 #' data("e1")
@@ -101,7 +104,7 @@
 #' 
 #' # Plot
 #' plot(IR, main = "Forecast Error Impulse Response", xlab = "Period", ylab = "Response")
-
+#'
 #' 
 #' @references
 #' 
@@ -110,8 +113,8 @@
 #' Pesaran, H. H., Shin, Y. (1998). Generalized impulse response analysis in linear multivariate models. \emph{Economics Letters, 58}, 17-29.
 #' 
 #' @export
-irf <- function(object, impulse = NULL, response = NULL, n.ahead = 5,
-                ci = .95, type = "feir", cumulative = FALSE) {
+irf <- function(object, impulse = NULL, response = NULL, n.ahead = 5, ci = .95,
+                type = "feir", cumulative = FALSE, keep_draws = FALSE) {
   
   if (!type %in% c("feir", "oir", "gir", "sir", "sgir")) {
     stop("Argument 'type' not known.")
@@ -135,7 +138,7 @@ irf <- function(object, impulse = NULL, response = NULL, n.ahead = 5,
   
   if (type %in% c("oir", "gir", "sgir")) {
     if (is.null(object$Sigma)) {
-      stop("OIR, GIR, SGIR require that draws of 'Sigma' are contained in the 'bvar' object.")
+      stop("OIR, GIR, SGIR require that the 'bvar' object contains draws of 'Sigma'.")
     }
     need_Sigma <- TRUE
   } else {
@@ -150,19 +153,20 @@ irf <- function(object, impulse = NULL, response = NULL, n.ahead = 5,
   k <- NROW(object$y)
   store <- nrow(object$A)
   
-  A <- c()
+  A <- NULL
   for (i in 1:store) {
     temp <- list(A = matrix(object$A[i, ], k))
     if (need_Sigma) {
       temp$Sigma <- matrix(object$Sigma[i, ], k)
     }
     if (need_A0) {
-      temp$A0 = matrix(object$A0[i, ], k) 
+      temp$A0 <- matrix(object$A0[i, ], k)
     }
     A[[i]] <- temp
   }
-
-  result <- lapply(A, .ir, h = n.ahead, type = type, impulse = impulse, response = response)
+  
+  result <- lapply(A, .ir, h = n.ahead, type = type,
+                   impulse = impulse, response = response)
   
   result <- t(matrix(unlist(result), n.ahead + 1))
   
@@ -176,10 +180,12 @@ irf <- function(object, impulse = NULL, response = NULL, n.ahead = 5,
     freq <- 1
   }
   
-  ci_low <- (1 - ci) / 2
-  ci_high <- 1 - ci_low
-  pr <- c(ci_low, .5, ci_high)
-  result <- stats::ts(t(apply(result, 2, stats::quantile, probs = pr)), start = 0, frequency = freq)
+  if (!keep_draws) {
+    ci_low <- (1 - ci) / 2
+    ci_high <- 1 - ci_low
+    pr <- c(ci_low, .5, ci_high)
+    result <- stats::ts(t(apply(result, 2, stats::quantile, probs = pr)), start = 0, frequency = freq) 
+  }
   
   class(result) <- append("bvarirf", class(result))
   return(result)

@@ -1,10 +1,10 @@
-## ----setup, include = FALSE----------------------------------------------
+## ----setup, include = FALSE---------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
-## ----data, fig.align='center', fig.height=5, fig.width=4.5---------------
+## ----data, fig.align='center', fig.height=5, fig.width=4.5--------------------
 # devtools::install_github("franzmohr/bvartools")
 library(bvartools)
 
@@ -19,7 +19,7 @@ data <- gen_var(e1, p = 4, deterministic = "const")
 y <- data$Y[, 1:71]
 x <- data$Z[, 1:71]
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Reset random number generator for reproducibility
 set.seed(1234567)
 
@@ -43,7 +43,7 @@ u_sigma_df_prior <- 0 # Prior degrees of freedom
 u_sigma_scale_prior <- diag(0, k) # Prior covariance matrix
 u_sigma_df_post <- t + u_sigma_df_prior # Posterior degrees of freedom
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Initial values
 a <- matrix(0, m)
 a_v_i_prior <- diag(1 / c(tau1)^2, m) # Inverse of the prior covariance matrix
@@ -57,7 +57,7 @@ draws_a <- matrix(NA, m, store)
 draws_lambda <- matrix(NA, m, store)
 draws_sigma <- matrix(NA, k^2, store)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Reset random number generator for reproducibility
 set.seed(1234567)
 
@@ -77,7 +77,7 @@ for (draw in 1:iter) {
   
   # Draw inclusion parameters and update priors
   temp <- ssvs(a, tau0, tau1, prob_prior, include = 1:36)
-  a_v_i_prior <- temp$V_i # Update prior
+  a_v_i_prior <- temp$v_i # Update prior
   
   # Store draws
   if (draw > burnin) {
@@ -87,15 +87,13 @@ for (draw in 1:iter) {
   }
 }
 
-## ------------------------------------------------------------------------
-A <- rowMeans(draws_a) # Obtain means for every parameter
-A <- matrix(A, k) # Transform mean vector into matrix
-A <- round(A, 3) # Round values
-dimnames(A) <- list(dimnames(y)[[1]], dimnames(x)[[1]]) # Rename matrix dimensions
+## -----------------------------------------------------------------------------
+bvar_est <- bvar(y = y, x = x, A = draws_a[1:36,],
+                 C = draws_a[37:39, ], Sigma = draws_sigma)
 
-t(A) # Print
+summary(bvar_est)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 lambda <- rowMeans(draws_lambda) # Obtain means for every row
 lambda <- matrix(lambda, k) # Transform mean vector into a matrix
 lambda <- round(lambda, 2) # Round values
@@ -103,10 +101,10 @@ dimnames(lambda) <- list(dimnames(y)[[1]], dimnames(x)[[1]]) # Rename matrix dim
 
 t(lambda) # Print
 
-## ---- fig.height=3.5, fig.width=4.5--------------------------------------
+## ---- fig.height=3.5, fig.width=4.5-------------------------------------------
 hist(draws_a[6,], main = "Consumption ~ First lag of income", xlab = "Value of posterior draw")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # Select variables that should be included
 include_var <- c(lambda >= .4)
 
@@ -136,27 +134,21 @@ for (draw in 1:iter) {
   }
 }
 
-## ------------------------------------------------------------------------
-A <- rowMeans(draws_a) # Obtain means for every row
-A <- matrix(A, k) # Transform mean vector into a matrix
-A <- round(A, 3) # Round values
-dimnames(A) <- list(dimnames(y)[[1]], dimnames(x)[[1]]) # Rename matrix dimensions
-
-t(A) # Print
-
-## ----bvar-object---------------------------------------------------------
+## -----------------------------------------------------------------------------
 bvar_est <- bvar(y = y, x = x, A = draws_a[1:36,],
                  C = draws_a[37:39, ], Sigma = draws_sigma)
 
-## ----thin----------------------------------------------------------------
+summary(bvar_est)
+
+## ----thin---------------------------------------------------------------------
 bvar_est <- thin(bvar_est, thin = 5)
 
-## ----forecasts, fig.width=5.5, fig.height=5.5----------------------------
+## ----forecasts, fig.width=5.5, fig.height=5.5---------------------------------
 bvar_pred <- predict(bvar_est, n.ahead = 10, new_D = rep(1, 10))
 
 plot(bvar_pred)
 
-## ----oir, fig.width=5.5, fig.height=4.5----------------------------------
+## ----oir, fig.width=5.5, fig.height=4.5---------------------------------------
 OIR <- irf(bvar_est, impulse = "income", response = "cons", n.ahead = 8, type = "oir")
 
 plot(OIR, main = "Orthogonalised Impulse Response", xlab = "Period", ylab = "Response")

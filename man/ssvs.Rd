@@ -9,18 +9,21 @@ ssvs(a, tau0, tau1, prob_prior, include = NULL)
 \arguments{
 \item{a}{an M-dimensional vector of coefficient draws.}
 
-\item{tau0}{an M-dimensional vector of prior standard deviations for restricted variables.}
+\item{tau0}{an M-dimensional vector of prior standard deviations for restricted
+coefficients in vector \code{a}.}
 
-\item{tau1}{an M-dimensional vector of prior standard deviations for unrestricted variables.}
+\item{tau1}{an M-dimensional vector of prior standard deviations for unrestricted
+coefficients in vector \code{a}.}
 
-\item{prob_prior}{an M-dimensional vector of prior inclusion probabilites.}
+\item{prob_prior}{an M-dimensional vector of prior inclusion probabilites for the coefficients
+in vector \code{a}.}
 
-\item{include}{an integer vector specifying the positions of variables, which should be
-included in the SSVS algorithm. If \code{NULL} (default), SSVS will be applied to all variables.}
+\item{include}{an integer vector specifying the positions of coefficients in vector \code{a}, which should be
+included in the SSVS algorithm. If \code{NULL} (default), SSVS will be applied to all coefficients.}
 }
 \value{
 A named list containing two components:
-\item{V_i}{an \eqn{M \times M} inverse prior covariance matrix.}
+\item{v_i}{an \eqn{M \times M} inverse prior covariance matrix.}
 \item{lambda}{an M-dimensional vector of inclusion parameters.}
 }
 \description{
@@ -45,17 +48,17 @@ temp <- gen_var(data, p = 2, deterministic = "const")
 y <- temp$Y
 x <- temp$Z
 k <- nrow(y)
-t <- ncol(y)
+tt <- ncol(y)
 m <- k * nrow(x)
 
 # OLS estimates for semiautomatic approach
 ols <- tcrossprod(y, x) \%*\% solve(tcrossprod(x))
 # OLS error covariance matrix
-sigma_ols <- tcrossprod(y - ols \%*\% x) / (t - nrow(x))
+sigma_ols <- tcrossprod(y - ols \%*\% x) / (tt - nrow(x))
 # Covariance matrix
 cov_ols <- kronecker(solve(tcrossprod(x)), sigma_ols)
 # Standard errors
-se_ols <- matrix(sqrt(diag(cov_ols))) # OLS standard errors
+se_ols <- matrix(sqrt(diag(cov_ols)))
 
 # SSVS priors
 tau0 <- se_ols * 0.1 # If excluded

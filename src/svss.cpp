@@ -7,11 +7,14 @@
 //' to produce a draw of the precision matrix of the coefficients in a VAR model.
 //' 
 //' @param a an M-dimensional vector of coefficient draws.
-//' @param tau0 an M-dimensional vector of prior standard deviations for restricted variables.
-//' @param tau1 an M-dimensional vector of prior standard deviations for unrestricted variables.
-//' @param prob_prior an M-dimensional vector of prior inclusion probabilites.
-//' @param include an integer vector specifying the positions of variables, which should be
-//' included in the SSVS algorithm. If \code{NULL} (default), SSVS will be applied to all variables.
+//' @param tau0 an M-dimensional vector of prior standard deviations for restricted
+//' coefficients in vector \code{a}.
+//' @param tau1 an M-dimensional vector of prior standard deviations for unrestricted
+//' coefficients in vector \code{a}.
+//' @param prob_prior an M-dimensional vector of prior inclusion probabilites for the coefficients
+//' in vector \code{a}.
+//' @param include an integer vector specifying the positions of coefficients in vector \code{a}, which should be
+//' included in the SSVS algorithm. If \code{NULL} (default), SSVS will be applied to all coefficients.
 //' 
 //' @details The function employs stochastic search variable selection (SSVS) as proposed
 //' by George et al. (2008) to produce a draw of the diagonal inverse prior covariance matrix
@@ -23,7 +26,7 @@
 //' and the error term is \eqn{u_t \sim \Sigma}.
 //' 
 //' @return A named list containing two components:
-//' \item{V_i}{an \eqn{M \times M} inverse prior covariance matrix.}
+//' \item{v_i}{an \eqn{M \times M} inverse prior covariance matrix.}
 //' \item{lambda}{an M-dimensional vector of inclusion parameters.}
 //' 
 //' @examples
@@ -34,17 +37,17 @@
 //' y <- temp$Y
 //' x <- temp$Z
 //' k <- nrow(y)
-//' t <- ncol(y)
+//' tt <- ncol(y)
 //' m <- k * nrow(x)
 //' 
 //' # OLS estimates for semiautomatic approach
 //' ols <- tcrossprod(y, x) %*% solve(tcrossprod(x))
 //' # OLS error covariance matrix
-//' sigma_ols <- tcrossprod(y - ols %*% x) / (t - nrow(x))
+//' sigma_ols <- tcrossprod(y - ols %*% x) / (tt - nrow(x))
 //' # Covariance matrix
 //' cov_ols <- kronecker(solve(tcrossprod(x)), sigma_ols)
 //' # Standard errors
-//' se_ols <- matrix(sqrt(diag(cov_ols))) # OLS standard errors
+//' se_ols <- matrix(sqrt(diag(cov_ols)))
 //' 
 //' # SSVS priors
 //' tau0 <- se_ols * 0.1 # If excluded
@@ -75,7 +78,7 @@
 //' \url{https://doi.org/10.1016/j.jeconom.2007.08.017}
 //' 
 // [[Rcpp::export]]
-Rcpp::List ssvs(arma::vec a, arma::vec tau0, arma::vec tau1, arma::vec prob_prior,
+  Rcpp::List ssvs(arma::vec a, arma::vec tau0, arma::vec tau1, arma::vec prob_prior,
                 Rcpp::Nullable<Rcpp::IntegerVector> include = R_NilValue) {
   int m = a.n_rows;
   arma::vec tau0_sq = arma::square(tau0);
@@ -109,6 +112,6 @@ Rcpp::List ssvs(arma::vec a, arma::vec tau0, arma::vec tau1, arma::vec prob_prio
       V(k, k) = 1 / tau0_sq(k);
     }
   }
-  return Rcpp::List::create(Rcpp::Named("V_i") = V,
+  return Rcpp::List::create(Rcpp::Named("v_i") = V,
                             Rcpp::Named("lambda") = lambda);
 }
