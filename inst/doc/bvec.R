@@ -12,61 +12,69 @@ data("e6")
 plot(e6) # Plot the series
 
 ## -----------------------------------------------------------------------------
-data <- gen_vec(e6, p = 4, const = "unrestricted", season = "unrestricted")
+data <- gen_vec(e6, p = 4, r = 1,
+                const = "unrestricted", season = "unrestricted",
+                iterations = 5000, burnin = 1000)
 
-y <- data$Y
-w <- data$W
-x <- data$X
+## -----------------------------------------------------------------------------
+data <- add_priors(data,
+                   coint = list(v_i = 0, p_tau_i = 1),
+                   coef = list(v_i = 0, v_i_det = 0),
+                   sigma = list(df = 0, scale = .0001))
 
 ## ----flat prior---------------------------------------------------------------
 # Reset random number generator for reproducibility
 set.seed(7654321)
 
-iter <- 10000 # Number of iterations of the Gibbs sampler
-burnin <- 5000 # Number of burn-in draws
-store <- iter - burnin
+# Obtain data matrices
+y <- t(data$data$Y)
+w <- t(data$data$W)
+x <- t(data$data$X)
 
-r <- 1 # Set rank
+r <- data$model$rank # Set rank
 
 tt <- ncol(y) # Number of observations
 k <- nrow(y) # Number of endogenous variables
 k_w <- nrow(w) # Number of regressors in error correction term
 k_x <- nrow(x) # Number of differenced regressors and unrestrictec deterministic terms
+k_gamma <- k * k_x # Total number of non-cointegration coefficients
 
 k_alpha <- k * r # Number of elements in alpha
 k_beta <- k_w * r # Number of elements in beta
-k_gamma <- k * k_x
 
-# Set uninformative priors
-a_mu_prior <- matrix(0, k_x * k) # Vector of prior parameter means
-a_v_i_prior <- diag(0, k_x * k) # Inverse of the prior covariance matrix
+# Priors
+a_mu_prior <- data$priors$noncointegration$mu # Prior means
+a_v_i_prior <- data$priors$noncointegration$v_i # Inverse of the prior covariance matrix
 
-v_i <- 0
-p_tau_i <- matrix(0, k_w, k_w)
-p_tau_i[1:r, 1:r] <- diag(1, r)
+v_i <- data$priors$cointegration$v_i
+p_tau_i <- data$priors$cointegration$p_tau_i
 
-sigma_df_prior <- k + r # Prior degrees of freedom
-sigma_scale_prior <- diag(0, k) # Prior covariance matrix
+sigma_df_prior <- data$priors$sigma$df # Prior degrees of freedom
+sigma_scale_prior <- data$priors$sigma$scale # Prior covariance matrix
 sigma_df_post <- tt + sigma_df_prior # Posterior degrees of freedom
 
 # Initial values
 beta <- matrix(0, k_w, r)
 beta[1:r, 1:r] <- diag(1, r)
 
-sigma_i <- diag(.00001, k)
-sigma <- solve(sigma_i)
+sigma_i <- diag(1 / .0001, k)
 
 g_i <- sigma_i
 
+iterations <- data$model$iterations # Number of iterations of the Gibbs sampler
+burnin <- data$model$burnin # Number of burn-in draws
+draws <- iterations + burnin # Total number of draws
+
 # Data containers
-draws_alpha <- matrix(NA, k_alpha, store)
-draws_beta <- matrix(NA, k_beta, store)
-draws_pi <- matrix(NA, k * k_w, store)
-draws_gamma <- matrix(NA, k_gamma, store)
-draws_sigma <- matrix(NA, k^2, store)
+draws_alpha <- matrix(NA, k_alpha, iterations)
+draws_beta <- matrix(NA, k_beta, iterations)
+draws_pi <- matrix(NA, k * k_w, iterations)
+draws_gamma <- matrix(NA, k_gamma, iterations)
+draws_sigma <- matrix(NA, k^2, iterations)
 
 # Start Gibbs sampler
-for (draw in 1:iter) {
+for (draw in 1:draws) {
+  
   # Draw conditional mean parameters
   temp <- post_coint_kls(y = y, beta = beta, w = w, x = x, sigma_i = sigma_i,
                            v_i = v_i, p_tau_i = p_tau_i, g_i = g_i,
@@ -109,43 +117,47 @@ beta # Print
 k_nondet <- (k_x - 4) * k
 
 # Generate bvec object
-bvec_est <- bvec(y = y, w = w, x = x,
-               Pi = draws_pi,
-               Gamma = draws_gamma[1:k_nondet,],
-               C = draws_gamma[(k_nondet + 1):nrow(draws_gamma),],
-               Sigma = draws_sigma)
+bvec_est <- bvec(y = data$data$Y,
+                 w = data$data$W,
+                 x = data$data$X[, 1:6],
+                 x_d = data$data$X[, -(1:6)],
+                 Pi = draws_pi,
+                 Gamma = draws_gamma[1:k_nondet,],
+                 C = draws_gamma[(k_nondet + 1):nrow(draws_gamma),],
+                 Sigma = draws_sigma)
 
 ## -----------------------------------------------------------------------------
 summary(bvec_est)
 
+## ---- eval = FALSE------------------------------------------------------------
+#  bvec_est <- draw_posterior(data)
+
 ## ----thin---------------------------------------------------------------------
-bvec_est <- thin(bvec_est, thin = 5)
+bvec_est <- thin_posterior(bvec_est, thin = 5)
 
 ## ----vec2var------------------------------------------------------------------
 bvar_form <- bvec_to_bvar(bvec_est)
 
-## ----forecast, , fig.width=5.5, fig.height=5.5--------------------------------
-bvar_pred <- predict(bvar_form, n.ahead = 10, new_D = t(bvar_form$x[9:12, 91:100]))
+## -----------------------------------------------------------------------------
+summary(bvar_form)
 
+## ----forecasts, fig.width=5.5, fig.height=5.5---------------------------------
+# Generate deterministc terms for function predict
+new_d <- data$data$X[3 + 1:10, c("const", "season.1", "season.2", "season.3")]
+
+# Genrate forecasts
+bvar_pred <- predict(bvar_form, n.ahead = 10, new_d = new_d)
+
+# Plot forecasts
 plot(bvar_pred)
 
 ## ----feir, fig.width=5.5, fig.height=4.5--------------------------------------
-IR <- irf(bvar_form, impulse = "R", response = "Dp", n.ahead = 20)
+FEIR <- irf(bvar_form, impulse = "R", response = "Dp", n.ahead = 20)
 
-plot(IR, main = "Forecast Error Impulse Response", xlab = "Year", ylab = "Response")
+plot(FEIR, main = "Forecast Error Impulse Response", xlab = "Period", ylab = "Response")
 
-## ----oir, fig.width=5.5, fig.height=4.5---------------------------------------
-OIR <- irf(bvar_form, impulse = "R", response = "Dp", n.ahead = 20, type = "oir")
+## ----fevd-oir, fig.width=5.5, fig.height=4.5----------------------------------
+bvar_fevd_oir <- fevd(bvar_form, response = "Dp", n.ahead = 20)
 
-plot(OIR, main = "Orthogonalised Impulse Response", xlab = "Year", ylab = "Response")
-
-## ----gir, fig.width=5.5, fig.height=4.5---------------------------------------
-GIR <- irf(bvar_form, impulse = "R", response = "Dp", n.ahead = 20, type = "gir")
-
-plot(GIR, main = "Generalised Impulse Response", xlab = "Year", ylab = "Response")
-
-## ----fevd, fig.width=5.5, fig.height=4.5--------------------------------------
-bvec_fevd <- fevd(bvar_form, response = "Dp", n.ahead = 20)
-
-plot(bvec_fevd, main = "FEVD of inflation")
+plot(bvar_fevd_oir, main = "OIR-based FEVD of inflation")
 

@@ -5,25 +5,28 @@ knitr::opts_chunk$set(
 )
 
 ## ----data, fig.align='center', fig.height=5, fig.width=4.5--------------------
-# devtools::install_github("franzmohr/bvartools")
 library(bvartools)
 
 # Load and transform data
 data("e1")
 e1 <- diff(log(e1))
 
-# Generate VAR
-data <- gen_var(e1, p = 4, deterministic = "const")
+# Shorten time series
+e1 <- window(e1, end = c(1978, 4))
 
-# Get data matrices
-y <- data$Y[, 1:71]
-x <- data$Z[, 1:71]
+# Generate VAR
+data <- gen_var(e1, p = 4, deterministic = "const",
+                iterations = 10000, burnin = 5000)
 
 ## -----------------------------------------------------------------------------
 # Reset random number generator for reproducibility
 set.seed(1234567)
 
-t <- ncol(y) # Number of observations
+# Get data matrices
+y <- t(data$data$Y)
+x <- t(data$data$Z)
+
+tt <- ncol(y) # Number of observations
 k <- nrow(y) # Number of endogenous variables
 m <- k * nrow(x) # Number of estimated coefficients
 
@@ -40,8 +43,8 @@ prob_prior <- matrix(0.5, m)
 
 # Prior for variance-covariance matrix
 u_sigma_df_prior <- 0 # Prior degrees of freedom
-u_sigma_scale_prior <- diag(0, k) # Prior covariance matrix
-u_sigma_df_post <- t + u_sigma_df_prior # Posterior degrees of freedom
+u_sigma_scale_prior <- diag(0.00001, k) # Prior covariance matrix
+u_sigma_df_post <- tt + u_sigma_df_prior # Posterior degrees of freedom
 
 ## -----------------------------------------------------------------------------
 # Initial values
@@ -49,20 +52,17 @@ a <- matrix(0, m)
 a_v_i_prior <- diag(1 / c(tau1)^2, m) # Inverse of the prior covariance matrix
 
 # Data containers for posterior draws
-iter <- 15000 # Number of total Gibs sampler draws
+iterations <- 10000 # Number of total Gibs sampler draws
 burnin <- 5000 # Number of burn-in draws
+draws <- iterations + burnin # Total number of draws
 
-store <- iter - burnin
-draws_a <- matrix(NA, m, store)
-draws_lambda <- matrix(NA, m, store)
-draws_sigma <- matrix(NA, k^2, store)
+draws_a <- matrix(NA, m, iterations)
+draws_lambda <- matrix(NA, m, iterations)
+draws_sigma <- matrix(NA, k^2, iterations)
 
 ## -----------------------------------------------------------------------------
-# Reset random number generator for reproducibility
-set.seed(1234567)
-
 # Start Gibbs sampler
-for (draw in 1:iter) {
+for (draw in 1:draws) {
   # Draw variance-covariance matrix
   u <- y - matrix(a, k) %*% x # Obtain residuals
   # Scale posterior
@@ -88,36 +88,37 @@ for (draw in 1:iter) {
 }
 
 ## -----------------------------------------------------------------------------
-bvar_est <- bvar(y = y, x = x, A = draws_a[1:36,],
-                 C = draws_a[37:39, ], Sigma = draws_sigma)
+bvar_est <- bvar(y = data$data$Y, x = data$data$Z,
+                 A = list(coeffs = draws_a[1:36,],
+                          lambda = draws_lambda[1:36,]),
+                 C = list(coeffs = draws_a[37:39, ],
+                          lambda = draws_lambda[37:39,]),
+                 Sigma = draws_sigma)
 
-summary(bvar_est)
+bvar_summary <- summary(bvar_est)
 
-## -----------------------------------------------------------------------------
-lambda <- rowMeans(draws_lambda) # Obtain means for every row
-lambda <- matrix(lambda, k) # Transform mean vector into a matrix
-lambda <- round(lambda, 2) # Round values
-dimnames(lambda) <- list(dimnames(y)[[1]], dimnames(x)[[1]]) # Rename matrix dimensions
-
-t(lambda) # Print
+bvar_summary
 
 ## ---- fig.height=3.5, fig.width=4.5-------------------------------------------
 hist(draws_a[6,], main = "Consumption ~ First lag of income", xlab = "Value of posterior draw")
 
 ## -----------------------------------------------------------------------------
+# Get inclusion probabilities
+lambda <- bvar_summary$coefficients$lambda
+
 # Select variables that should be included
 include_var <- c(lambda >= .4)
 
 # Update prior variances
-diag(a_v_i_prior)[!include_var] <- 100000 # Very tight prior close to zero
+diag(a_v_i_prior)[!include_var] <- 1 / 0.00001 # Very tight prior close to zero
 diag(a_v_i_prior)[include_var] <- 1 / 9 # Relatively uninformative prior
 
 # Data containers for posterior draws
-draws_a <- matrix(NA, m, store)
-draws_sigma <- matrix(NA, k^2, store)
+draws_a <- matrix(NA, m, iterations)
+draws_sigma <- matrix(NA, k^2, iterations)
 
 # Start Gibbs sampler
-for (draw in 1:iter) {
+for (draw in 1:draws) {
   # Draw conditional mean parameters
   a <- post_normal(y, x, u_sigma_i, a_mu_prior, a_v_i_prior)
   
@@ -135,21 +136,17 @@ for (draw in 1:iter) {
 }
 
 ## -----------------------------------------------------------------------------
-bvar_est <- bvar(y = y, x = x, A = draws_a[1:36,],
+bvar_est <- bvar(y = data$data$Y, x = data$data$Z, A = draws_a[1:36,],
                  C = draws_a[37:39, ], Sigma = draws_sigma)
 
 summary(bvar_est)
 
-## ----thin---------------------------------------------------------------------
-bvar_est <- thin(bvar_est, thin = 5)
+## ---- eval = FALSE------------------------------------------------------------
+#  # Obtain priors
+#  model_with_priors <- add_priors(data,
+#                                  ssvs = list(inprior = 0.5, semiautomatic = c(0.01, 10), exclude_det = TRUE),
+#                                  sigma = list(df = 0, scale = 0.00001))
 
-## ----forecasts, fig.width=5.5, fig.height=5.5---------------------------------
-bvar_pred <- predict(bvar_est, n.ahead = 10, new_D = rep(1, 10))
-
-plot(bvar_pred)
-
-## ----oir, fig.width=5.5, fig.height=4.5---------------------------------------
-OIR <- irf(bvar_est, impulse = "income", response = "cons", n.ahead = 8, type = "oir")
-
-plot(OIR, main = "Orthogonalised Impulse Response", xlab = "Period", ylab = "Response")
+## ---- message = FALSE, warning = FALSE, eval = FALSE--------------------------
+#  ssvs_est <- draw_posterior(model_with_priors)
 
