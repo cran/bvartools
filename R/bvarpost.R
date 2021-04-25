@@ -30,10 +30,10 @@
 #' 
 #' George, E. I., Sun, D., & Ni, S. (2008). Bayesian stochastic search for VAR model
 #' restrictions. \emph{Journal of Econometrics, 142}(1), 553--580.
-#' \url{https://doi.org/10.1016/j.jeconom.2007.08.017}
+#' \doi{10.1016/j.jeconom.2007.08.017}
 #' 
 #' Korobilis, D. (2013). VAR forecasting using Bayesian variable selection.
-#' \emph{Journal of Applied Econometrics, 28}(2), 204--230. \url{https://doi.org/10.1002/jae.1271}
+#' \emph{Journal of Applied Econometrics, 28}(2), 204--230. \doi{10.1002/jae.1271}
 #' 
 #' @examples
 #' 
@@ -43,8 +43,8 @@
 #' 
 #' # Create model
 #' model <- gen_var(e1, p = 2, deterministic = "const",
-#'                  iterations = 100, burnin = 10)
-#' # Chosen number of iterations and burnin should be much higher.
+#'                  iterations = 50, burnin = 10)
+#' # Number of iterations and burnin should be much higher.
 #' 
 #' # Add priors
 #' model <- add_priors(model)
