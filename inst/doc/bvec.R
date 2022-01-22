@@ -122,9 +122,13 @@ bvec_est <- bvec(y = data$data$Y,
                  x = data$data$X[, 1:6],
                  x_d = data$data$X[, -(1:6)],
                  Pi = draws_pi,
+                 r = 1,
                  Gamma = draws_gamma[1:k_nondet,],
                  C = draws_gamma[(k_nondet + 1):nrow(draws_gamma),],
                  Sigma = draws_sigma)
+
+## ---- message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
+plot(bvec_est)
 
 ## -----------------------------------------------------------------------------
 summary(bvec_est)
@@ -133,7 +137,7 @@ summary(bvec_est)
 #  bvec_est <- draw_posterior(data)
 
 ## ----thin---------------------------------------------------------------------
-bvec_est <- thin_posterior(bvec_est, thin = 5)
+bvec_est <- thin(bvec_est, thin = 5)
 
 ## ----vec2var------------------------------------------------------------------
 bvar_form <- bvec_to_bvar(bvec_est)

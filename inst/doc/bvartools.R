@@ -29,6 +29,12 @@ model_with_priors <- add_priors(model,
 ## ---- message=FALSE, warning=FALSE--------------------------------------------
 bvar_est <- draw_posterior(model_with_priors)
 
+## ---- message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
+plot(bvar_est)
+
+## ---- message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
+plot(bvar_est, type = "trace")
+
 ## -----------------------------------------------------------------------------
 summary(bvar_est)
 
@@ -44,7 +50,7 @@ A_freq <- tcrossprod(y, z) %*% solve(tcrossprod(z))
 round(A_freq, 3)
 
 ## -----------------------------------------------------------------------------
-bvar_est <- thin_posterior(bvar_est, thin = 10)
+bvar_est <- thin(bvar_est, thin = 10)
 
 ## ----forecasts, fig.width=5.5, fig.height=5.5---------------------------------
 bvar_pred <- predict(bvar_est, n.ahead = 10, new_d = rep(1, 10))

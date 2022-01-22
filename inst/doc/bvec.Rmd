@@ -173,9 +173,16 @@ bvec_est <- bvec(y = data$data$Y,
                  x = data$data$X[, 1:6],
                  x_d = data$data$X[, -(1:6)],
                  Pi = draws_pi,
+                 r = 1,
                  Gamma = draws_gamma[1:k_nondet,],
                  C = draws_gamma[(k_nondet + 1):nrow(draws_gamma),],
                  Sigma = draws_sigma)
+```
+
+Posterior draws an be inspected with `plot`:
+
+```{r, message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10}
+plot(bvec_est)
 ```
 
 Obtain summaries of posterior draws
@@ -197,7 +204,7 @@ bvec_est <- draw_posterior(data)
 Posterior draws can be thinned with function `thin`:
 
 ```{r thin}
-bvec_est <- thin_posterior(bvec_est, thin = 5)
+bvec_est <- thin(bvec_est, thin = 5)
 ```
 
 The function `bvec_to_bvar` can be used to transform the VEC model into a VAR in levels:

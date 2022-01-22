@@ -7,6 +7,8 @@ knitr::opts_chunk$set(
 ## ---- message = FALSE, warning = FALSE, fig.height=4, fig.width=5-------------
 library(bvartools)
 
+set.seed(123456) # Set seed for reproducibility
+
 data("e1") # Load data
 data <- diff(log(e1)) * 100 # Obtain log-differences
 
