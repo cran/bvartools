@@ -1,3 +1,14 @@
+# bvartools 0.2.2
+
+* Addressed CRAN NOTE on CITATION file
+* Addressed the CRAN NOTE "Specified C++11: please drop specification unless essential" by dropping the specification from "src/Makevars"
+* Improved the treatment of `bvar` and `bvec` objects if Gibbs sampler fails.
+* Fix erroneous SUR-matrix generation for VEC models with r = 0 in `.bvecalg`.
+* Fix bug in `.bvecalg` and `.bvectvpalg` with the storing of posterior draws of beta.
+* Fix bug of `predict.bvar`, which could not handle only VARX models with contemporaneous exogenous variables only.
+* Model plot functions support boxplots.
+* Fix typos in documentation.
+
 # bvartools 0.2.1
 
 * Added functionality for the simulation of models with time varying parameters, both for VAR and VEC models.

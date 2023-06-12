@@ -91,7 +91,7 @@ Rcpp::List bvecalg(Rcpp::List object) {
     }
     z_beta = arma::zeros<arma::mat>(k * tt, n_beta);
   } else {
-    z = Rcpp::as<arma::mat>(data["SUR"]).cols(k * n_w, k * (n_w + n_x) + n_a0 - 1);
+    z = Rcpp::as<arma::mat>(data["SUR"]).cols(k * w.n_rows, k * (w.n_rows + n_x) + n_a0 - 1);
   }
   
   // Exogenous variables
@@ -130,7 +130,7 @@ Rcpp::List bvecalg(Rcpp::List object) {
   Rcpp::List priors_cointegration;
   Rcpp::CharacterVector prcoint_names;
   double coint_v_i;
-  arma::mat g_i, post_beta_mu, post_beta_Vi, p_tau_i;
+  arma::mat beta_post_v, g_i, post_beta_mu, p_tau_i;
   if (use_rr) {
     priors_cointegration = priors["cointegration"];
     prcoint_names = priors_cointegration.names();
@@ -335,16 +335,16 @@ Rcpp::List bvecalg(Rcpp::List object) {
     omega_i = Rcpp::as<arma::mat>(init_sigma["sigma_i"]);
     sigma_i = omega_i;
   }
-  diag_sigma_i.diag() = arma::repmat(sigma_i.diag(), tt, 1);
+  diag_sigma_i = arma::kron(diag_tt, sigma_i);
   if (covar | sv) {
     diag_omega_i = diag_sigma_i;
   }
   g_i = sigma_i;
 
   // Storage objects
-  int iter = Rcpp::as<int>(model["iterations"]);
-  int burnin = Rcpp::as<int>(model["burnin"]);
-  int draws = iter + burnin;
+  const int iter = Rcpp::as<int>(model["iterations"]);
+  const int burnin = Rcpp::as<int>(model["burnin"]);
+  const int draws = iter + burnin;
   int pos_draw;
   const int alpha_pos_start = 0;
   const int alpha_pos_end = n_alpha - 1;
@@ -398,8 +398,10 @@ Rcpp::List bvecalg(Rcpp::List object) {
 
     // Draw non-cointegration coefficients ----
     
-    if (use_rr) { // Update priors for alpha
+    if (use_rr) {
+      // Update priors for alpha
       gamma_prior_vi.submat(0, 0, n_alpha - 1, n_alpha - 1) = arma::kron(coint_v_i * (arma::trans(beta) * p_tau_i * beta), g_i);
+      // Update data
       if (bvs) {
         z_bvs.cols(0, n_alpha - 1) = arma::kron(arma::trans(arma::trans(beta) * w), diag_k);
       } else {
@@ -468,16 +470,12 @@ Rcpp::List bvecalg(Rcpp::List object) {
         lambda_vec = a_lambda.diag();
       }
     }
-
-    
     
     if (n_x > 0) {
       y_beta = yvec - z.cols(n_alpha, n_tot - 1) * gamma.rows(n_alpha, n_tot - 1);
     } else {
       y_beta = yvec;
     }
-
-  
     
     // Cointegration
     if (use_rr) {
@@ -485,14 +483,13 @@ Rcpp::List bvecalg(Rcpp::List object) {
       alpha = arma::reshape(gamma.rows(0, n_alpha - 1), k, r);
       Alpha = alpha * arma::solve(arma::sqrtmat_sympd(alpha.t() * alpha), diag_r);
 
-      // Draw Beta
       for (int i = 0; i < tt; i++){
         z_beta.rows(i * k, (i + 1) * k - 1) = arma::kron(Alpha, arma::trans(w.col(i)));
       }
 
-      post_beta_Vi = arma::solve(arma::kron(Alpha.t() * g_i * Alpha, coint_v_i * p_tau_i) + arma::trans(z_beta) * diag_sigma_i * z_beta, diag_beta);
-      post_beta_mu = post_beta_Vi * (arma::trans(z_beta) * diag_sigma_i * y_beta);
-      Beta = arma::reshape(arma::mvnrnd(post_beta_mu, post_beta_Vi), n_w, r);
+      beta_post_v = arma::kron(Alpha.t() * g_i * Alpha, coint_v_i * p_tau_i) + arma::trans(z_beta) * diag_sigma_i * z_beta;
+      post_beta_mu = arma::solve(beta_post_v, arma::trans(z_beta) * diag_sigma_i * y_beta);
+      Beta = arma::reshape(post_beta_mu + arma::solve(arma::chol(beta_post_v), arma::randn(n_beta)), n_w, r);
 
       // Final cointegration values
       BB_sqrt = arma::sqrtmat_sympd(arma::trans(Beta) * Beta);
@@ -636,7 +633,11 @@ Rcpp::List bvecalg(Rcpp::List object) {
         }
 
       } else {
-        sigma_i = arma::wishrnd(arma::solve(sigma_prior_scale + u * u.t(), diag_k), sigma_post_df);
+        if (use_rr) {
+          sigma_i = arma::wishrnd(arma::solve(coint_v_i * alpha * (beta.t() * p_tau_i * beta) * alpha.t() + u * u.t(), diag_k), sigma_post_df);
+        } else {
+          sigma_i = arma::wishrnd(arma::solve(sigma_prior_scale + u * u.t(), diag_k), sigma_post_df);
+        }
       }
 
       diag_sigma_i = arma::kron(diag_tt, sigma_i);
@@ -672,9 +673,9 @@ Rcpp::List bvecalg(Rcpp::List object) {
 
       if (use_rr) {
         draws_alpha.col(pos_draw) = arma::vectorise(gamma.rows(alpha_pos_start, alpha_pos_end));
-        draws_beta.col(pos_draw) = arma::vectorise(beta);
+        draws_beta.col(pos_draw) = arma::vectorise(beta.t());
       }
-
+      
       if (n_gamma > 0) {
         draws_gamma.col(pos_draw) = arma::vectorise(gamma.rows(gamma_pos_start, gamma_pos_end));
         if (varsel) {
@@ -701,7 +702,7 @@ Rcpp::List bvecalg(Rcpp::List object) {
       }
     }
   } // End loop
-
+  
   Rcpp::List posteriors = Rcpp::List::create(Rcpp::Named("a0") = R_NilValue,
                                              Rcpp::Named("alpha") = R_NilValue,
                                              Rcpp::Named("beta") = R_NilValue,
@@ -714,6 +715,18 @@ Rcpp::List bvecalg(Rcpp::List object) {
 
   if (use_rr) {
     posteriors["alpha"] = Rcpp::wrap(Rcpp::List::create(Rcpp::Named("coeffs") = draws_alpha));
+    
+    // Reformat draws
+    for (int i = 0; i < iter; i ++) {
+      draws_beta.submat(0, i, r * k - 1, i) = arma::vectorise(arma::trans(arma::reshape(draws_beta.submat(0, i, r * k - 1, i), r, k)));
+      if (m > 0) {
+        draws_beta.submat(r * k, i, r * (k + m) - 1, i) = arma::vectorise(arma::trans(arma::reshape(draws_beta.submat(r * k, i, r * (k + m) - 1, i), r, m))); 
+      }
+      if (n_r > 0) {
+        draws_beta.submat(r * (k + m), i, r * (k + m + n_r) - 1, i) = arma::vectorise(arma::trans(arma::reshape(draws_beta.submat(r * (k + m), i, r * (k + m + n_r) - 1, i), r, n_r)));
+      }
+    }
+    
     posteriors["beta"] = Rcpp::wrap(Rcpp::List::create(Rcpp::Named("coeffs") = draws_beta.rows(0, r * k - 1)));
     if (m > 0) {
       posteriors["beta_x"] = Rcpp::wrap(Rcpp::List::create(Rcpp::Named("coeffs") = draws_beta.rows(r * k, r * (k + m) - 1)));
@@ -781,6 +794,4 @@ Rcpp::List bvecalg(Rcpp::List object) {
                             Rcpp::Named("model") = object["model"],
                             Rcpp::Named("priors") = object["priors"],
                             Rcpp::Named("posteriors") = posteriors);
-  
-  // return Rcpp::List::create(Rcpp::Named("test") = sigma_i);
 }
