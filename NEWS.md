@@ -1,3 +1,15 @@
+# bvartools 0.2.3
+
+* Fixed alias issue resulting from use of `roxygen2`.
+* Made `kalman_dk` callable from C++.
+* Stochastic volatility algorithms allow to set the offsetting constant manually.
+* Changed `stoch_vol` to a wrapper for `stochvol_ksc1998`.
+* Added stochastic volatility algorithm of Kim et al. (1998) in a separate function `stochvol_ksc1998`.
+* Added stochastic volatility algorithm of Omori et al. (2007) in function `stochvol_ocsn2007`.
+* Fixed bug with detection of deterministic terms in `bvar`.
+* Implemented recursive iterations for forecasts in C++.
+* Replaced erroneous `|` in C++ sampling functions by `||`.
+
 # bvartools 0.2.2
 
 * Addressed CRAN NOTE on CITATION file

@@ -346,7 +346,7 @@ Rcpp::List bvectvpalg(Rcpp::List object) {
     sigma_u_i = omega_i;
   }
   diag_sigma_u_i.diag() = arma::repmat(sigma_u_i.diag(), tt, 1);
-  if (covar | sv) {
+  if (covar || sv) {
     diag_omega_i = diag_sigma_u_i;
   }
   
@@ -628,7 +628,7 @@ Rcpp::List bvectvpalg(Rcpp::List object) {
       
       // Draw variances
       for (int i = 0; i < k; i++) {
-        h.col(i) = bvartools::stoch_vol(u.row(i).t(), h.col(i), sigma_h(i), h_init(i));
+        h.col(i) = bvartools::stoch_vol(u.row(i).t(), h.col(i), sigma_h(i), h_init(i), .0001);
       }
       diag_omega_i.diag() = 1 / exp(arma::vectorise(h.t()));
       if (covar) {
