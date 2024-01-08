@@ -26,13 +26,13 @@ model_with_priors <- add_priors(model,
                                 coef = list(v_i = 0, v_i_det = 0),
                                 sigma = list(df = 1, scale = .0001))
 
-## ---- message=FALSE, warning=FALSE--------------------------------------------
+## ----message=FALSE, warning=FALSE---------------------------------------------
 bvar_est <- draw_posterior(model_with_priors)
 
-## ---- message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
+## ----message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
 plot(bvar_est)
 
-## ---- message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
+## ----message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
 plot(bvar_est, type = "trace")
 
 ## -----------------------------------------------------------------------------

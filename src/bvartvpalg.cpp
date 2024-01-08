@@ -209,7 +209,7 @@ Rcpp::List bvartvpalg(Rcpp::List object) {
     }
   }
   // Initial values
-  arma::vec h_init, sigma_h, u_vec, sigma_post_scale;
+  arma::vec h_constant, h_init, sigma_h, u_vec, sigma_post_scale;
   arma::mat h_init_post_v, sigma_h_i, diag_sigma_i_temp;
   arma::vec h_init_post_mu;
   arma::mat h, h_lag, sse;
@@ -220,6 +220,7 @@ Rcpp::List bvartvpalg(Rcpp::List object) {
     h = Rcpp::as<arma::mat>(init_sigma["h"]);
     h_lag = h * 0;
     sigma_h = Rcpp::as<arma::vec>(init_sigma["sigma_h"]);
+    h_constant = Rcpp::as<arma::vec>(init_sigma["constant"]);
     h_init = arma::vectorise(h.row(0));
     sigma_u_i = arma::diagmat(1 / exp(h_init));
   } else {
@@ -405,19 +406,13 @@ Rcpp::List bvartvpalg(Rcpp::List object) {
       u = arma::reshape(Psi * u_vec, k, tt);
     }
     
+    ////////////////////////////////////////////////////////////////////////////
+    // Draw measurement error variances
+    
     if (sv) {
-
-      // Draw variances
-      for (int i = 0; i < k; i++) {
-        h.col(i) = bvartools::stoch_vol(u.row(i).t(), h.col(i), sigma_h(i), h_init(i), 0.0001);
-      }
-      diag_omega_i.diag() = 1 / exp(arma::vectorise(h.t()));
-      if (covar) {
-        diag_sigma_u_i = arma::trans(Psi) * diag_omega_i * Psi;
-      } else {
-        diag_sigma_u_i = diag_omega_i;
-      }
-
+      
+      h = bvartools::stochvol_ksc1998(arma::trans(u), h, sigma_h, h_init, h_constant);
+      
       // Draw sigma_h
       h_lag.row(0) = h_init.t();
       h_lag.rows(1, tt - 1) = h.rows(0, tt - 2);
@@ -426,35 +421,51 @@ Rcpp::List bvartvpalg(Rcpp::List object) {
       for (int i = 0; i < k; i++) {
         sigma_h(i) = 1 / arma::randg<double>(arma::distr_param(sigma_post_shape(i), sigma_post_scale(i)));
       }
-
+      
       // Draw h_init
       sigma_h_i = arma::diagmat(1 / sigma_h);
       h_init_post_v = sigma_prior_vi + sigma_h_i;
       h_init_post_mu = arma::solve(h_init_post_v, sigma_prior_vi * sigma_prior_mu + sigma_h_i * h.row(0).t());
       h_init = h_init_post_mu + arma::solve(arma::chol(h_init_post_v), arma::randn(k));
-
+      
     } else {
-
+      
       if (use_gamma) {
-
         sse = u * u.t();
         for (int i = 0; i < k; i++) {
           omega_i(i, i) = arma::randg<double>(arma::distr_param(sigma_post_shape(i), 1 / arma::as_scalar(sigma_prior_rate(i) + sse(i, i) * 0.5)));
         }
-        diag_omega_i = arma::kron(diag_tt, omega_i);
+      }
+      
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////
+    // Combine Psi and Omega resp. draw from Wishart
+    
+    if (sv) {
+      diag_omega_i.diag() = 1 / exp(arma::vectorise(h.t()));
+      if (covar) {
+        diag_sigma_u_i = arma::trans(Psi) * diag_omega_i * Psi;
+      } else {
+        diag_sigma_u_i = diag_omega_i;
+      }
+    } else {
+      if (use_gamma) {
         if (covar) {
           diag_sigma_u_i = arma::trans(Psi) * diag_omega_i * Psi;
         } else {
           sigma_u_i = omega_i;
           diag_sigma_u_i = diag_omega_i;
         }
-
       } else {
         sigma_u_i = arma::wishrnd(arma::solve(sigma_prior_scale + u * u.t(), diag_k), sigma_post_df);
         diag_sigma_u_i = arma::kron(diag_tt, sigma_u_i);
       }
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    // Draw state variances and initial states
+    
     if (use_a) {
       // Draw sigma_v_i
       a_lag.subvec(0, n_tot - 1) = a_init;

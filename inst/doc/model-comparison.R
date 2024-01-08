@@ -1,10 +1,10 @@
-## ---- include = FALSE---------------------------------------------------------
+## ----include = FALSE----------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
 
-## ---- message = FALSE, warning = FALSE, fig.height=4, fig.width=5-------------
+## ----message = FALSE, warning = FALSE, fig.height=4, fig.width=5--------------
 library(bvartools)
 
 set.seed(123456) # Set seed for reproducibility
@@ -28,10 +28,10 @@ object <- add_priors(object,
                      coef = list(v_i = 0, v_i_det = 0),
                      sigma = list(df = "k", scale = 0.0001))
 
-## ---- message = FALSE, warning=FALSE, results='hide', eval = FALSE------------
+## ----message = FALSE, warning=FALSE, results='hide', eval = FALSE-------------
 #  object <- draw_posterior(object, mc.cores = 3)
 
-## ---- message = FALSE, warning=FALSE, results='hide', echo = FALSE------------
+## ----message = FALSE, warning=FALSE, results='hide', echo = FALSE-------------
 object <- draw_posterior(object)
 
 ## -----------------------------------------------------------------------------

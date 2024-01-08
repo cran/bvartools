@@ -29,14 +29,14 @@ The function is a wrapper for function \code{\link{stochvol_ksc1998}}.
 }
 \examples{
 data("us_macrodata")
-y <- us_macrodata[, "r"]
+y <- matrix(us_macrodata[, "r"])
 
 # Initialise log-volatilites
-h_init <- log(var(y))
-h <- rep(h_init, length(y))
+h_init <- matrix(log(var(y)))
+h <- matrix(rep(h_init, length(y)))
 
 # Obtain draw
-stoch_vol(y - mean(y), h, .05, h_init, 0.0001)
+stoch_vol(y - mean(y), h, matrix(.05), h_init, matrix(0.0001))
 
 }
 \references{

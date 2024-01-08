@@ -20,14 +20,14 @@
 //' 
 //' @examples
 //' data("us_macrodata")
-//' y <- us_macrodata[, "r"]
+//' y <- matrix(us_macrodata[, "r"])
 //' 
 //' # Initialise log-volatilites
-//' h_init <- log(var(y))
-//' h <- rep(h_init, length(y))
+//' h_init <- matrix(log(var(y)))
+//' h <- matrix(rep(h_init, length(y)))
 //' 
 //' # Obtain draw
-//' stoch_vol(y - mean(y), h, .05, h_init, 0.0001)
+//' stoch_vol(y - mean(y), h, matrix(.05), h_init, matrix(0.0001))
 //' 
 //' @references
 //' 
@@ -38,7 +38,7 @@
 //' with ARCH models. \emph{Review of Economic Studies 65}(3), 361--393. \doi{10.1111/1467-937X.00050}
 //' 
 // [[Rcpp::export]]
-arma::vec stoch_vol(arma::vec y, arma::vec h, double sigma, double h_init, double constant) {
+arma::mat stoch_vol(arma::mat y, arma::mat h, arma::vec sigma, arma::vec h_init, arma::vec constant) {
   return bvartools::stochvol_ksc1998(y, h, sigma, h_init, constant);
 }
 

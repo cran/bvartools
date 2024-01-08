@@ -127,13 +127,13 @@ bvec_est <- bvec(y = data$data$Y,
                  C = draws_gamma[(k_nondet + 1):nrow(draws_gamma),],
                  Sigma = draws_sigma)
 
-## ---- message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
+## ----message=FALSE, warning=FALSE, fig.align='center', fig.height=5, fig.width=10----
 plot(bvec_est)
 
 ## -----------------------------------------------------------------------------
 summary(bvec_est)
 
-## ---- eval = FALSE------------------------------------------------------------
+## ----eval = FALSE-------------------------------------------------------------
 #  bvec_est <- draw_posterior(data)
 
 ## ----thin---------------------------------------------------------------------
