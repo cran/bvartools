@@ -29,7 +29,7 @@ object <- add_priors(object,
                      sigma = list(df = "k", scale = 0.0001))
 
 ## ----message = FALSE, warning=FALSE, results='hide', eval = FALSE-------------
-#  object <- draw_posterior(object, mc.cores = 3)
+# object <- draw_posterior(object, mc.cores = 3)
 
 ## ----message = FALSE, warning=FALSE, results='hide', echo = FALSE-------------
 object <- draw_posterior(object)

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Franz X. Mohr" />
+
+<meta name="date" content="2026-09-11" />
+
+<title>Moving from bvartools 0.3.0 to 1.0.0</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Moving from bvartools 0.3.0 to 1.0.0</h1>
+<h4 class="author">Franz X. Mohr</h4>
+<h4 class="date">2026-09-11</h4>
+
+
+
+<div id="what-this-release-is-for" class="section level2">
+<h2>What this release is for</h2>
+<p>Version 0.3.0 is a transition release. It is the functionality of
+bvartools as it has been on CRAN, with a small number of correctness
+fixes, and it is the last version before 1.0.0 reorganises the package
+around a different set of functions.</p>
+<p>Nothing in this release stops working. What it adds is a message: the
+first time in a session that you use a function which 1.0.0 does not
+have any more, bvartools says so and names what takes its place.
+Upgrading to this release is therefore a way to find out what a later
+upgrade to 1.0.0 will cost you, while everything still runs.</p>
+<p>The messages are shown once per function per session. To switch them
+off:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">options</span>(<span class="at">bvartools.transition.messages =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+</div>
+<div id="renamed-functions" class="section level2">
+<h2>Renamed functions</h2>
+<p>These do the same thing under a new name. The arguments are
+unchanged.</p>
+<table>
+<thead>
+<tr class="header">
+<th>0.3.0</th>
+<th>1.0.0</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>gen_var()</code></td>
+<td><code>create_bvarmodel()</code></td>
+</tr>
+<tr class="even">
+<td><code>gen_vec()</code></td>
+<td><code>create_bvecmodel()</code></td>
+</tr>
+<tr class="odd">
+<td><code>bvec_to_bvar()</code></td>
+<td><code>vec_to_var()</code></td>
+</tr>
+<tr class="even">
+<td><code>kalman_dk()</code></td>
+<td><code>kalman_durbin_koopman_2002()</code></td>
+</tr>
+<tr class="odd">
+<td><code>stochvol_ksc1998()</code></td>
+<td><code>stochvol_ksc_1998()</code></td>
+</tr>
+<tr class="even">
+<td><code>stochvol_ocsn2007()</code></td>
+<td><code>stochvol_ocsn_2007()</code></td>
+</tr>
+<tr class="odd">
+<td><code>stoch_vol()</code></td>
+<td><code>stochvol_ksc_1998()</code></td>
+</tr>
+<tr class="even">
+<td><code>bvs()</code></td>
+<td><code>post_bvs()</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>stoch_vol()</code> was a wrapper for the algorithm of Kim,
+Shephard and Chib (1998), which <code>stochvol_ksc_1998()</code>
+implements directly, so the wrapper has no separate successor.</p>
+</div>
+<div id="a-changed-workflow-for-posterior-simulation" class="section level2">
+<h2>A changed workflow for posterior simulation</h2>
+<p><code>draw_posterior()</code>, <code>bvarpost()</code> and
+<code>bvecpost()</code> are replaced by a sequence of functions, each of
+which adds one thing to the model object. Where 0.3.0 has</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">gen_var</span>(data, <span class="at">p =</span> <span class="dv">2</span>, <span class="at">deterministic =</span> <span class="st">&quot;const&quot;</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">add_priors</span>(object)</span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">draw_posterior</span>(object)</span></code></pre></div>
+<p>1.0.0 has</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">create_bvarmodel</span>(data, <span class="at">p =</span> <span class="dv">2</span>, <span class="at">deterministic =</span> <span class="st">&quot;const&quot;</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">add_priors</span>(object)</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">add_initial_values</span>(object)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">add_posterior_coefficients</span>(object)</span></code></pre></div>
+<p>with <code>add_posterior_forecasts()</code> and
+<code>add_posterior_loglik()</code> producing the forecasts and the log
+likelihood that <code>draw_posterior()</code> used to produce in the
+same call. Splitting them apart is what lets a model be estimated once
+and then have forecasts added, or the log likelihood recomputed, without
+repeating the simulation.</p>
+</div>
+<div id="removed-without-a-successor" class="section level2">
+<h2>Removed without a successor</h2>
+<p>Dynamic factor models are removed from bvartools in 1.0.0 entirely.
+That covers <code>dfm()</code>, <code>dfmpost()</code> and
+<code>gen_dfm()</code>, the <code>add_priors()</code>,
+<code>plot()</code>, <code>summary()</code> and <code>thin()</code>
+methods for objects of class <code>dfm</code>, and the example data set
+<code>bem_dfmdata</code>. A data set cannot announce itself, so this is
+the only notice <code>bem_dfmdata</code> gets.</p>
+<p><code>post_normal_covar_const()</code> and
+<code>post_normal_covar_tvp()</code> are also removed with nothing
+taking their place.</p>
+</div>
+<div id="renamed-classes-and-the-methods-that-follow-them" class="section level2">
+<h2>Renamed classes, and the methods that follow them</h2>
+<p>The model classes are renamed in 1.0.0. The generics are the same, so
+code that calls <code>plot()</code>, <code>summary()</code>,
+<code>predict()</code> or <code>thin()</code> on a model object keeps
+working; what changes is the name of the class those methods are written
+for, which matters if you dispatch on it yourself or test for it with
+<code>inherits()</code>.</p>
+<table>
+<thead>
+<tr class="header">
+<th>0.3.0</th>
+<th>1.0.0</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>bvar</code></td>
+<td><code>bvarmodel</code></td>
+</tr>
+<tr class="even">
+<td><code>bvec</code></td>
+<td><code>bvecmodel</code></td>
+</tr>
+<tr class="odd">
+<td><code>bvarlist</code></td>
+<td><code>modellist</code></td>
+</tr>
+</tbody>
+</table>
+<p>These do not produce a message, because the function you call is
+unchanged.</p>
+</div>
+<div id="same-name-different-input" class="section level2">
+<h2>Same name, different input</h2>
+<p>These functions exist in 1.0.0 under the same name but do not take
+the same input, because they take the reorganised model object. They
+produce no message either, for the same reason: the name is still there.
+Read their documentation before assuming a call carries over.</p>
+<p><code>add_priors()</code>, <code>bvar()</code>, <code>bvec()</code>,
+<code>irf()</code>, <code>fevd()</code>, <code>inclusion_prior()</code>,
+<code>minnesota_prior()</code>, <code>ssvs_prior()</code>.</p>
+</div>
+<div id="fixes-in-this-release" class="section level2">
+<h2>Fixes in this release</h2>
+<p>Five defects in the CRAN sources are fixed here. Three of them change
+results.</p>
+<ul>
+<li><p><strong>Stochastic volatility with an observation far out in the
+tails.</strong> <code>stochvol_ksc1998()</code> and
+<code>stochvol_ocsn2007()</code> sampled the mixture indicator from
+weights formed as densities and normalised by their sum. Where an
+observation lies far enough out in the tails of every component, each
+density underflows to zero, the row sums to zero, the weights become
+<code>NaN</code>, and the indicator runs one past the last component –
+which ends the call with <code>Mat::elem(): index out of bounds</code>.
+The weights are now formed in logs and shifted by their row maximum
+before they are exponentiated. This is algebraically the same
+calculation, and draws from a given seed are unchanged: verified bit for
+bit against the previous implementation. Only the case that used to fail
+behaves differently, and it now returns a draw.</p></li>
+<li><p><strong>Argument checking in the same two functions.</strong>
+<code>sigma</code>, <code>h_init</code> and <code>constant</code> were
+indexed on trust, so a vector of the wrong length surfaced as
+<code>Mat::elem(): index out of bounds</code> rather than as a statement
+about the argument. Each is now checked against the number of columns of
+<code>y</code> and named in the error.</p></li>
+<li><p><strong>Impulse responses and variance decompositions of
+structural models.</strong> A structural model keeps its contemporaneous
+block separately, so its coefficient draws are the structural
+<code>A_i</code> and its covariance draws the covariance of the
+structural errors. The forecast error, orthogonalised and generalised
+recursions want the reduced form. Given the structural quantities they
+returned numbers that belong to no model at all – and the same numbers
+for all three types, since the structural error covariance makes the
+orthogonalisation degenerate. <code>irf()</code> with <code>type</code>
+of <code>&quot;feir&quot;</code>, <code>&quot;oir&quot;</code> or <code>&quot;gir&quot;</code>, and
+<code>fevd()</code> with <code>&quot;oir&quot;</code> or <code>&quot;gir&quot;</code>, now
+refuse a structural model and say why. Use <code>&quot;sir&quot;</code> or
+<code>&quot;sgir&quot;</code>, which are what a structural model is for and are
+unchanged, or estimate the model with
+<code>structural = FALSE</code>.</p></li>
+<li><p><strong>The structural variance decomposition ignored the
+variances of the structural shocks.</strong> <code>fevd()</code> with
+<code>type = &quot;sir&quot;</code> used <code>A_0^-1</code> as the impulse matrix
+and <code>A_0^-1 A_0^-1&#39;</code> as the forecast error covariance,
+leaving the covariance of the structural errors out of both. Every
+structural shock was then decomposed as if it had unit variance, which
+moves weight to whichever shock loads most heavily in <code>A_0</code>.
+Because the shares are normalised they still summed to one, so nothing
+in the output showed that anything was wrong. <code>&quot;sgir&quot;</code>
+already carried the covariance and is unchanged, as is every reduced
+form type.</p></li>
+<li><p><strong>Seasonal terms for data of frequency one.</strong>
+<code>gen_vec()</code> warned that no seasonal dummies are generated for
+a series of frequency one and then added them anyway, stopping with
+<code>object &#39;seas&#39; not found</code>. It now does what the warning says.
+<code>gen_var()</code> was never affected.</p></li>
+</ul>
+</div>
+<div id="getting-the-messages-out-of-a-script" class="section level2">
+<h2>Getting the messages out of a script</h2>
+<p>Beyond the option above, the messages are ordinary conditions, so
+<code>suppressMessages()</code> works on any single call:</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>object <span class="ot">&lt;-</span> <span class="fu">suppressMessages</span>(<span class="fu">gen_var</span>(data, <span class="at">p =</span> <span class="dv">2</span>, <span class="at">deterministic =</span> <span class="st">&quot;const&quot;</span>))</span></code></pre></div>
+<p>They are messages rather than warnings deliberately: they will not
+become errors under <code>options(warn = 2)</code>, and they will not
+fail a check that treats warnings as failures.</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

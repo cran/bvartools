@@ -134,7 +134,7 @@ plot(bvec_est)
 summary(bvec_est)
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  bvec_est <- draw_posterior(data)
+# bvec_est <- draw_posterior(data)
 
 ## ----thin---------------------------------------------------------------------
 bvec_est <- thin(bvec_est, thin = 5)

@@ -142,11 +142,11 @@ bvar_est <- bvar(y = data$data$Y, x = data$data$Z, A = draws_a[1:36,],
 summary(bvar_est)
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  # Obtain priors
-#  model_with_priors <- add_priors(data,
-#                                  ssvs = list(inprior = 0.5, semiautomatic = c(0.01, 10), exclude_det = TRUE),
-#                                  sigma = list(df = 0, scale = 0.00001))
+# # Obtain priors
+# model_with_priors <- add_priors(data,
+#                                 ssvs = list(inprior = 0.5, semiautomatic = c(0.01, 10), exclude_det = TRUE),
+#                                 sigma = list(df = 0, scale = 0.00001))
 
 ## ----message = FALSE, warning = FALSE, eval = FALSE---------------------------
-#  ssvs_est <- draw_posterior(model_with_priors)
+# ssvs_est <- draw_posterior(model_with_priors)
 
